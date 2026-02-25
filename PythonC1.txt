@@ -1,0 +1,7 @@
+Python is a programming language - Object Oriented
+
+In this particualr course, we will learn Python Backend.
+- Django (Backend Development Tool using Python)
+
+This course is not to master Python as a language.
+Python is a prerequisite for this course.
