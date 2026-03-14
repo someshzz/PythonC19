@@ -1,0 +1,7 @@
+1. Create a FOlder, and create a virtual environment using `python -m venv .venv`
+2. Install django and djangorestframework using pip
+3. Create a requrements.txt file with all the dependencies you need (optional, but preferred)
+4. Create a Django app using django-admin using `django-admin startproject task_app  .`
+5. Created a new Calculator folder with its own urls.py and views.py and wrote APIs and linked in urls.py of calculator and task_app.
+6. Created a views.py file for task_app and added JSON add functions for Users and Tasks.
+7. Registred our task_app.calculator in settings.py in task_app.py file.
