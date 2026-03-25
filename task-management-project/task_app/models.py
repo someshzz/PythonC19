@@ -1,16 +1,19 @@
-class User: 
-
-  def __init__(self, id, first_name, last_name, age) -> None:
-    self.id = id
-    self.first_name = first_name
-    self.last_name = last_name
-    self.age = age
+from django.db import models
 
 
-class Task:
-  
-  def __init__(self, id, user_id, name, desc) -> None:
-    self.id = id
-    self.user_id = user_id
-    self.name = name
-    self.desc = desc
+class User(models.Model):
+    first_name = models.CharField(max_length=100) # Varchar(100)
+    last_name = models.CharField(max_length=100) # Varchar(100)
+    age = models.IntegerField() # Int
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+
+class Task(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    desc = models.TextField()
+
+    def __str__(self):
+        return self.name

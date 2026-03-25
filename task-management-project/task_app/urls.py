@@ -24,5 +24,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('task_app.calculator.urls')),
     path('task/add/', add_task),
-    path('user/add/', add_user)
+    path('user/add/', add_user),
+    path('', include('job_app.urls')),
 ]

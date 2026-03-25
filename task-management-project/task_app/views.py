@@ -1,63 +1,31 @@
-import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from task_app.models import Task
+from task_app.serializers import TaskSerializer, UserSerializer
 
-USER_FILE = "/Users/shantanu/B/AirTribe/PythonC19/task-management-project/users.json"
-TASK_FILE = "/Users/shantanu/B/AirTribe/PythonC19/task-management-project/tasks.json"
 
 @api_view(['POST'])
 def add_task(request):
-
-  # Read from Request
-  data = json.loads(request.body)
-
-  # Read current Tasks
-  with open(TASK_FILE, "r") as file:
-    tasks: list = json.load(file)
-  
-  # Create New Task
-  new_task = {
-    "id": data["id"],
-    "user_id": data["user_id"],
-    "name": data["name"],
-    "desc": data["desc"]
-  }
-
-  # Append to existing tasks
-  tasks.append(new_task) 
-
-  # Save all tasks
-  with open(TASK_FILE, "w") as file:
-    json.dump(tasks, file, indent=2)
-
-  return Response(new_task)
+  serializer = TaskSerializer(data=request.data)
+  serializer.is_valid(raise_exception=True)
+  serializer.save()
+  return Response(serializer.data)
 
 
 @api_view(['POST'])
 def add_user(request):
+  # Creating a new object of UserSerializer with data = request.data. UserSerializer 
+  # will deserialze on the on basis of mentioned fields
+  serializer = UserSerializer(data=request.data)
 
-  # Read from Request
-  data = json.loads(request.body)
+  # Checks if everything is valid
+  serializer.is_valid(raise_exception=True)
 
-  # Read current Tasks
-  with open(USER_FILE, "r") as file:
-    users: list = json.load(file)
-  
-  # Create New Task
-  new_user = {
-    "id": data["id"],
-    "first_name": data["first_name"],
-    "last_name": data["last_name"],
-    "age": data["age"]
-  }
+  # Calls Users.objects.create() internally
+  serializer.save()
 
-  # Append to existing tasks
-  users.append(new_user) 
+  # serializer.data is the created user but deserialized on the basis of what was mentioned.
+  return Response(serializer.data) 
 
-  # Save all tasks
-  with open(USER_FILE, "w") as file:
-    json.dump(users, file, indent=2)
-
-  return Response(new_user)
 
 # Write an API to read all tasks for a given user_id GET /read_tasks_for_user

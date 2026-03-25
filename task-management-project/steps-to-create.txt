@@ -5,3 +5,9 @@
 5. Created a new Calculator folder with its own urls.py and views.py and wrote APIs and linked in urls.py of calculator and task_app.
 6. Created a views.py file for task_app and added JSON add functions for Users and Tasks.
 7. Registred our task_app.calculator in settings.py in task_app.py file.
+
+Left:
+1. Connect with DB (PostgreSQL) for Tasks and Users - by using Docker (not included in Syllabus/optional)
+2. Use Django Models
+3. Use ORMs
+4. Use AI to create Frontend (not included in Syllabus)
