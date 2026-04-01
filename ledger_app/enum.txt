@@ -1,0 +1,3 @@
+int a = 15
+
+boolean isLessThan10 = a < 10; // true or false
