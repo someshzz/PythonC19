@@ -101,13 +101,12 @@ class BankTransferPaymentProcessor(PaymentProcessor):
         }
 
 
-def get_payment_processor(method: PaymentMethod) -> PaymentProcessor:
+def get_payment_processor(method: PaymentMethod | str) -> PaymentProcessor:
     """Factory: return the right processor instance for a given payment method string."""
-    if (method is PaymentMethod.UPI):
+    if method == PaymentMethod.UPI or method == PaymentMethod.UPI.value:
         return UPIPaymentProcessor()
-    elif (method is PaymentMethod.CC):
+    if method == PaymentMethod.CC or method == PaymentMethod.CC.value:
         return CreditCardPaymentProcessor()
-    elif (method is PaymentMethod.BANK_TRANSFER):
+    if method == PaymentMethod.BANK_TRANSFER or method == PaymentMethod.BANK_TRANSFER.value:
         return BankTransferPaymentProcessor()
-    else:
-        raise Exception("Please use a supported Payment method")
+    raise ValueError("Please use a supported payment method")

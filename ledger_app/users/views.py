@@ -3,6 +3,7 @@ from datetime import date
 from django.db import transaction as db_transaction
 from django.db.models import Sum as models_sum
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -11,6 +12,7 @@ from .payment import get_payment_processor
 from .serializers import (
     AccountSerializer,
     BudgetSerializer,
+    SetDefaultAccountSerializer,
     TransactionCreateSerializer,
     TransactionSerializer,
     UserSerializer,
@@ -21,15 +23,30 @@ class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    @action(detail=True, methods=["post"], url_path="set-default-account")
+    def set_default_account(self, request, pk=None):
+        user = self.get_object()
+        serializer = SetDefaultAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        account = serializer.validated_data["account"]
+        if account.user_id != user.id:
+            return Response(
+                {"error": "That account does not belong to this user."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.default_account = account
+        user.save(update_fields=["default_account"])
+        return Response(UserSerializer(user).data)
+
 
 class AccountViewSet(ModelViewSet):
     # This is allowing the ModelViewSet to perform a JOIN on user and account table
-    queryset = Account.objects.select_related('user').all()
+    queryset = Account.objects.select_related("user").all()
     serializer_class = AccountSerializer
 
 
 class TransactionViewSet(ModelViewSet):
-    queryset = Transaction.objects.select_related('from_account', 'to_account').all()
+    queryset = Transaction.objects.select_related("from_account", "to_account").all()
     serializer_class = TransactionSerializer
 
     def create(self, request, *args, **kwargs):
@@ -48,7 +65,7 @@ class TransactionViewSet(ModelViewSet):
             )
 
         to_account = receiver.default_account
-        if to_account is None: # null = None
+        if to_account is None:  # null = None
             return Response(
                 {"error": "Receiver has no default account configured."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -66,8 +83,7 @@ class TransactionViewSet(ModelViewSet):
         # Step 4: Budget check for this category this month
         today = date.today()
         budget = Budget.objects.filter(
-            user=from_account.user,
-            category=data["category"],
+            user=from_account.user, category=data["category"]
         ).first()
 
         # Budget Found
@@ -127,7 +143,14 @@ class TransactionViewSet(ModelViewSet):
 
         return Response(TransactionSerializer(txn).data, status=status.HTTP_201_CREATED)
 
+        # Task
+        # Create an API that returns a transaction history for a user for all bank accounts for a given start date & end date
+        # It should have:
+        # 1. TxnId, 2. Receiver Name 3. Receiver Account Number 4. txnDate 5. Amount 6. Txn Status
+
+        # A person should be able to filter on the basis of TxnStatus
+
 
 class BudgetViewSet(ModelViewSet):
-    queryset = Budget.objects.select_related('user').all()
+    queryset = Budget.objects.select_related("user").all()
     serializer_class = BudgetSerializer

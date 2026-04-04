@@ -38,18 +38,6 @@ class Account(models.Model):
         return f"{self.account_number} ({self.account_type})"
 
 
-# # Not good design. This is over-modeling.
-# # This works when you are not a backend engineer but are thinking pure DB.
-# class UserDefaultAccount(models.Model):
-#     id = models.UUIDField(
-#         primary_key=True,
-#         default=uuid.uuid4,
-#         editable=False
-#     )
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='default1')
-#     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='default2')
-
-
 class Category(models.TextChoices):
     HOUSEHOLD = "HOUSEHOLD", "Household"
     LEISURE = "LEISURE", "Leisure"

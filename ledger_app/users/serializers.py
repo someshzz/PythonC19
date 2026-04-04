@@ -6,13 +6,32 @@ from .models import Account, Budget, Category, Transaction, User, PaymentMethod
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "dob"]
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "dob",
+            "phone_number",
+            "default_account",
+        ]
+
+
+class SetDefaultAccountSerializer(serializers.Serializer):
+    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
 
 
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ["id", "user", "account_number", "ifsc", "balance", "account_type", "created_at"]
+        fields = [
+            "id",
+            "user",
+            "account_number",
+            "ifsc",
+            "balance",
+            "account_type",
+            "created_at",
+        ]
         read_only_fields = ["created_at"]
 
 
@@ -29,8 +48,15 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = [
-            "id", "from_account", "to_account", "amount",
-            "category", "description", "payment_method", "status", "created_at",
+            "id",
+            "from_account",
+            "to_account",
+            "amount",
+            "category",
+            "description",
+            "payment_method",
+            "status",
+            "created_at",
         ]
         read_only_fields = ["id", "created_at"]
 
