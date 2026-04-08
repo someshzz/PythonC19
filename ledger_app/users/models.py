@@ -34,6 +34,7 @@ class Account(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # toString()
     def __str__(self):
         return f"{self.account_number} ({self.account_type})"
 

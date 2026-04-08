@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Account, Budget, Category, Transaction, User, PaymentMethod
+from .models import Account, Budget, Category, PaymentMethod, Transaction, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -59,6 +59,30 @@ class TransactionSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class TransactionHistorySerializer(serializers.ModelSerializer):
+    txn_id = serializers.UUIDField(source="id")
+    receiver_name = serializers.SerializerMethodField() # Depends on a return value of a fucntion that the developer will write
+    receiver_account_number = serializers.CharField(source="to_account.account_number")
+    txn_date = serializers.DateTimeField(source="created_at")
+    txn_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Transaction
+        fields = ["txn_id", "receiver_name", "receiver_account_number", "txn_date", "amount", "status", "txn_type"]
+
+    def get_receiver_name(self, obj):
+        return str(obj.to_account.user)
+
+    def get_txn_type(self, obj):
+        user_account_ids = self.context.get("user_account_ids", set())
+        if obj.from_account_id in user_account_ids:
+            return "DEBIT"
+        else:
+            return "CREDIT"
+
+   
 
 
 class BudgetSerializer(serializers.ModelSerializer):

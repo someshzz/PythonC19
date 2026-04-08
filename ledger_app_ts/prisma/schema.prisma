@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  SAVINGS
+  CURRENT
+}
+
+enum Category {
+  HOUSEHOLD
+  LEISURE
+  TRAVEL
+  MISCELLANEOUS
+}
+
+enum PaymentMethod {
+  UPI
+  CC
+  BANK_TRANSFER
+}
+
+enum TransactionStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  firstName      String   @map("first_name") @db.VarChar(50)
+  lastName       String   @map("last_name") @db.VarChar(50)
+  dob            DateTime @db.Date
+  phoneNumber    String   @unique @map("phone_number") @db.VarChar(15)
+  defaultAccount Account? @relation("DefaultAccount", fields: [defaultAccountId], references: [id])
+  defaultAccountId Int?   @unique @map("default_account_id")
+
+  accounts       Account[]   @relation("UserAccounts")
+  budgets        Budget[]
+
+  @@map("users")
+}
+
+model Account {
+  id            Int         @id @default(autoincrement())
+  user          User        @relation("UserAccounts", fields: [userId], references: [id])
+  userId        Int         @map("user_id")
+  accountNumber String      @unique @map("account_number") @db.VarChar(30)
+  ifsc          String      @db.VarChar(11)
+  balance       Decimal     @default(0.00) @db.Decimal(12, 2)
+  accountType   AccountType @map("account_type")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  defaultForUser User?       @relation("DefaultAccount")
+
+  outgoingTransactions Transaction[] @relation("FromAccount")
+  incomingTransactions Transaction[] @relation("ToAccount")
+
+  @@map("accounts")
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  fromAccount   Account           @relation("FromAccount", fields: [fromAccountId], references: [id])
+  fromAccountId Int               @map("from_account_id")
+  toAccount     Account           @relation("ToAccount", fields: [toAccountId], references: [id])
+  toAccountId   Int               @map("to_account_id")
+  amount        Decimal           @db.Decimal(12, 2)
+  category      Category
+  description   String?
+  paymentMethod PaymentMethod     @map("payment_method")
+  status        TransactionStatus @default(PROCESSING)
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  @@map("transactions")
+}
+
+model Budget {
+  id       String   @id @default(uuid())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   Int      @map("user_id")
+  category Category
+  amount   Decimal  @default(0.00) @db.Decimal(12, 2)
+
+  @@map("budgets")
+}

@@ -1,9 +1,10 @@
 from datetime import date
 
 from django.db import transaction as db_transaction
-from django.db.models import Sum as models_sum
+from django.db.models import Q, Sum as models_sum
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -14,6 +15,7 @@ from .serializers import (
     BudgetSerializer,
     SetDefaultAccountSerializer,
     TransactionCreateSerializer,
+    TransactionHistorySerializer,
     TransactionSerializer,
     UserSerializer,
 )
@@ -143,12 +145,33 @@ class TransactionViewSet(ModelViewSet):
 
         return Response(TransactionSerializer(txn).data, status=status.HTTP_201_CREATED)
 
-        # Task
-        # Create an API that returns a transaction history for a user for all bank accounts for a given start date & end date
-        # It should have:
-        # 1. TxnId, 2. Receiver Name 3. Receiver Account Number 4. txnDate 5. Amount 6. Txn Status
+    @action(detail=False, methods=["GET"], url_path="history")
+    def get_transaction_history_for_user(self, request: Request):
+        user_id = request.query_params.get('user_id')
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
 
-        # A person should be able to filter on the basis of TxnStatus
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not start_date or not end_date:
+            return Response({"error": "start_date and end_date is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        """
+            In order to get all transactions for a user, we need to identify all accounts of a user
+        """
+        # [1, 2]
+        user_accounts: list = Account.objects.filter(user_id = user_id).values_list("id", flat=True)
+
+        transactions = Transaction.objects.filter(
+            Q(from_account__in=user_accounts) | Q(to_account__in=user_accounts),
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        ).select_related("from_account", "to_account__user")
+
+        user_account_ids = set(user_accounts)
+        
+        serializer = TransactionHistorySerializer(transactions, many=True, context={"user_account_ids": user_account_ids})
+        return Response(serializer.data)
 
 
 class BudgetViewSet(ModelViewSet):
