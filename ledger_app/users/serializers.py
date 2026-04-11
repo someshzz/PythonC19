@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from .bcrypt_util import hash_password
 from .models import Account, Budget, Category, PaymentMethod, Transaction, User
 
 
@@ -14,6 +15,28 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_number",
             "default_account",
         ]
+
+
+class SignupSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=50)
+    last_name = serializers.CharField(max_length=50)
+    dob = serializers.DateField()
+    phone_number = serializers.CharField(max_length=15)
+    password = serializers.CharField(min_length=8, write_only=True)
+
+    def validate_phone_number(self, value):
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("A user with this phone number already exists.")
+        return value
+
+    def create(self, validated_data):
+        raw_password = validated_data.pop("password")
+        return User.objects.create(password=hash_password(raw_password), **validated_data)
+
+
+class LoginSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(max_length=15)
+    password = serializers.CharField(write_only=True)
 
 
 class SetDefaultAccountSerializer(serializers.Serializer):

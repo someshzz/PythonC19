@@ -6,14 +6,20 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
+from users.jwt_util import generate_token
+
+from .bcrypt_util import verify_password
 from .models import Account, Budget, Transaction, User
 from .payment import get_payment_processor
 from .serializers import (
     AccountSerializer,
     BudgetSerializer,
+    LoginSerializer,
     SetDefaultAccountSerializer,
+    SignupSerializer,
     TransactionCreateSerializer,
     TransactionHistorySerializer,
     TransactionSerializer,
@@ -147,33 +153,89 @@ class TransactionViewSet(ModelViewSet):
 
     @action(detail=False, methods=["GET"], url_path="history")
     def get_transaction_history_for_user(self, request: Request):
-        user_id = request.query_params.get('user_id')
+        # Verify JWT Token
+        user_id = request.query_params.get("user_id")
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
 
         if not user_id:
-            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
         if not start_date or not end_date:
-            return Response({"error": "start_date and end_date is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "start_date and end_date is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         """
             In order to get all transactions for a user, we need to identify all accounts of a user
         """
         # [1, 2]
-        user_accounts: list = Account.objects.filter(user_id = user_id).values_list("id", flat=True)
+        user_accounts: list = Account.objects.filter(user_id=user_id).values_list(
+            "id", flat=True
+        )
 
         transactions = Transaction.objects.filter(
             Q(from_account__in=user_accounts) | Q(to_account__in=user_accounts),
             created_at__date__gte=start_date,
-            created_at__date__lte=end_date
+            created_at__date__lte=end_date,
         ).select_related("from_account", "to_account__user")
 
         user_account_ids = set(user_accounts)
-        
-        serializer = TransactionHistorySerializer(transactions, many=True, context={"user_account_ids": user_account_ids})
+
+        serializer = TransactionHistorySerializer(
+            transactions, many=True, context={"user_account_ids": user_account_ids}
+        )
         return Response(serializer.data)
 
 
 class BudgetViewSet(ModelViewSet):
     queryset = Budget.objects.select_related("user").all()
     serializer_class = BudgetSerializer
+
+
+class SignupView(APIView):
+    authentication_classes = []
+    # TODO: Revisit later
+    permission_classes = []
+
+    def post(self, request: Request):
+        serializer = SignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        jwt_token = generate_token(user)
+        return Response(
+            {"user": UserSerializer(user).data, "token": jwt_token}, status=status.HTTP_201_CREATED
+        )
+
+
+class LoginView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request: Request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone_number = serializer.validated_data["phone_number"]
+        password = serializer.validated_data["password"]
+
+        try:
+            user = User.objects.get(phone_number=phone_number)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Invalid phone number or password."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if not verify_password(password, user.password):
+            return Response(
+                {"error": "Invalid phone number or password."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        jwt_token = generate_token(user)
+        return Response(
+            {"user": UserSerializer(user).data, "token": jwt_token},
+            status=status.HTTP_200_OK,
+        )

@@ -8,6 +8,7 @@ class User(models.Model):
     last_name = models.CharField(max_length=50)
     dob = models.DateField()
     phone_number = models.CharField(max_length=15, blank=False, unique=True)
+    password = models.CharField(max_length=128)
     default_account = models.ForeignKey(
         "Account",
         null=True,
@@ -15,6 +16,8 @@ class User(models.Model):
         on_delete=models.SET_NULL,
         related_name="default_for_user",
     )
+
+    is_authenticated = True
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
